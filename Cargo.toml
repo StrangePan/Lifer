@@ -1,0 +1,10 @@
+[package]
+name = "Lifer"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+
+[dependencies.sdl3]
+version = "0.14.31"
+features = ["build-from-source"]
