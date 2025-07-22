@@ -1,8 +1,9 @@
 mod conway;
 
+use std::io;
+use std::io::Write;
 use std::mem::MaybeUninit;
 use sdl3::event::Event;
-use crate::conway::{new_value_for_block, Board};
 
 #[macro_use]
 extern crate static_assertions;
@@ -50,8 +51,8 @@ fn main() {
       }
     }
 
-    let source: &Board;
-    let destination: &mut Board;
+    let source: &conway::Board;
+    let destination: &mut conway::Board;
     if step & 1 == 0 {
       source = &buffer1;
       destination = &mut buffer2;
@@ -62,10 +63,11 @@ fn main() {
     step ^= 1;
 
     print!("Updating board...");
+    io::stdout().flush().unwrap();
     let start = std::time::Instant::now();
     compute_next_board_state(source, destination);
     let duration = start.elapsed();
-    println!("Done in {} milliseconds.", duration.as_secs_f32() * 10000.);
+    println!("Done in {} milliseconds.", duration.as_secs_f32() * 1000.0);
 
     // TODO draw the board
   }
@@ -102,7 +104,7 @@ fn zero_out_buffer_serially<T: Clone + Send + Default, const N: usize>(buffer: B
   buffer
 }
 
-fn compute_next_board_state(source: &Board, destination: &mut Board) {
+fn compute_next_board_state(source: &conway::Board, destination: &mut conway::Board) {
   let num_threads = num_threads();
   let chunk_size = (source.len() + num_threads - 1) / num_threads;
 
@@ -111,7 +113,7 @@ fn compute_next_board_state(source: &Board, destination: &mut Board) {
     for chunk in destination.chunks_mut(chunk_size) {
       threads.push(scope.spawn(|| {
         for (index, block) in chunk.iter_mut().enumerate() {
-          *block = new_value_for_block(source, index);
+          *block = conway::new_value_for_block(source, index);
         }
       }));
     }

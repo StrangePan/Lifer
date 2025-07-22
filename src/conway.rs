@@ -1,3 +1,4 @@
+use std::ops::{Shl, Shr};
 
 // Cells are stored as individual bits inside a block of cells.
 pub type CellBlock = u64;
@@ -21,9 +22,9 @@ pub type Board = [CellBlock; BOARD_TOTAL_BLOCKS];
 
 pub fn new_value_for_block(board: &Board, block_index: usize) -> CellBlock {
   let first_row = block_index < BOARD_WIDTH_BLOCKS;
-  let last_column = block_index % BOARD_WIDTH_BLOCKS < BOARD_WIDTH_BLOCKS - 1;
-  let last_row = block_index < BOARD_TOTAL_BLOCKS - BOARD_WIDTH_BLOCKS;
-  let first_column = block_index % BOARD_WIDTH_BLOCKS > 0;
+  let last_column = block_index % BOARD_WIDTH_BLOCKS == BOARD_WIDTH_BLOCKS - 1;
+  let last_row = block_index >= BOARD_TOTAL_BLOCKS - BOARD_WIDTH_BLOCKS;
+  let first_column = block_index % BOARD_WIDTH_BLOCKS == 0;
 
   let mut neighbors: u32 = 0;
   if !first_row {
@@ -104,7 +105,7 @@ fn new_value_for_outer_cell_block(block: u64, neighbors: u32, neighbor_corners: 
 
   for cell in TOP_CELLS {
     let neighbor_mask: u8 =
-        ((neighbors >> (cell - 1)) & 0b00000111) as u8
+        (shift_right(neighbors, cell as i8 - 1) & 0b00000111) as u8
             | neighbor_left_of_cell(block, cell)
             | neighbor_right_of_cell(block, cell)
             | neighbors_below_cell(block, cell);
@@ -114,11 +115,11 @@ fn new_value_for_outer_cell_block(block: u64, neighbors: u32, neighbor_corners: 
     let row = cell / 8;
     let neighbor_mask: u8 =
         (neighbors_above_cell(block, cell) & 0b00000011)
-            | ((neighbors >> (row + 5)) & 0b00000100) as u8
+            | (shift_right(neighbors, row as i8 + 5) & 0b00000100) as u8
             | neighbor_left_of_cell(block, cell)
-            | ((neighbors >> (row + 4)) & 0b00010000) as u8
+            | (shift_right(neighbors, row as i8 + 4) & 0b00010000) as u8
             | (neighbors_below_cell(block, cell) & 0b01100000)
-            | ((neighbors >> (row + 2)) & 0b10000000) as u8;
+            | (shift_right(neighbors, row as i8 + 2) & 0b10000000) as u8;
     new_block |= new_value_for_cell(block, cell, neighbor_mask);
   }
   for cell in BOTTOM_CELLS {
@@ -126,17 +127,17 @@ fn new_value_for_outer_cell_block(block: u64, neighbors: u32, neighbor_corners: 
         neighbors_above_cell(block, cell)
             | neighbor_left_of_cell(block, cell)
             | neighbor_right_of_cell(block, cell)
-            | ((neighbors >> (cell - 46)) & 0b11100000) as u8;
+            | (shift_right(neighbors, cell as i8 - 46) & 0b11100000) as u8;
     new_block |= new_value_for_cell(block, cell, neighbor_mask);
   }
   for cell in LEFT_CELLS {
     let row = cell / 8;
     let neighbor_mask: u8 =
-        ((neighbors >> (row + 23)) & 0b00000001) as u8
+        (shift_right(neighbors, row as i8 + 23) & 0b00000001) as u8
             | (neighbors_above_cell(block, cell) & 0b00000110)
-            | ((neighbors >> (row + 21)) & 0b00001000) as u8
+            | (shift_right(neighbors, row as i8 + 21) & 0b00001000) as u8
             | neighbor_right_of_cell(block, cell)
-            | ((neighbors >> (row + 20)) & 0b00100000) as u8
+            | (shift_right(neighbors, row as i8 + 20) & 0b00100000) as u8
             | (neighbors_below_cell(block, cell) & 0b11000000);
     new_block |= new_value_for_cell(block, cell, neighbor_mask);
   }
@@ -167,7 +168,7 @@ fn new_value_for_outer_cell_block(block: u64, neighbors: u32, neighbor_corners: 
       | ((neighbors >> 12) & 0b00000100) as u8
       | neighbor_left_of_cell(block, cell)
       | ((neighbors >> 9) & 0b00010000) as u8
-      | (neighbors_below_cell(block, cell) & 0b01100000)
+      | ((neighbors >> 17) & 0b01100000) as u8
       | (neighbor_corners & 0b10000000);
   new_block |= new_value_for_cell(block, cell, neighbor_mask);
 
@@ -215,19 +216,19 @@ fn new_value_for_inner_cell(block: u64, cell: u8) -> u64 {
 }
 
 fn neighbors_above_cell(block: u64, cell: u8) -> u8 {
-  ((block >> (cell - 9)) & 0b00000111) as u8
+  (shift_right(block, cell as i8 - 9) & 0b00000111) as u8
 }
 
 fn neighbor_left_of_cell(block: u64, cell: u8) -> u8 {
-  ((block >> (cell - 4)) & 0b00001000) as u8
+  (shift_right(block, cell as i8 - 4) & 0b00001000) as u8
 }
 
 fn neighbor_right_of_cell(block: u64, cell: u8) -> u8 {
-  ((block >> (cell - 3)) & 0b00010000) as u8
+  (shift_right(block, cell as i8 - 3) & 0b00010000) as u8
 }
 
 fn neighbors_below_cell(block: u64, cell: u8) -> u8 {
-  ((block >> (cell + 2)) & 0b11100000) as u8
+  (shift_right(block, cell as i8 + 2) & 0b11100000) as u8
 }
 
 fn new_value_for_cell(block: u64, cell: u8, neighbor_mask: u8) -> u64 {
@@ -309,5 +310,13 @@ fn new_value_for_live_cell(neighbor_mask: u8) -> u64 {
     0b11101001 => 0, 0b11101010 => 0, 0b11101011 => 0, 0b11101100 => 0, 0b11101101 => 0, 0b11101110 => 0, 0b11101111 => 0, 0b11110000 => 0,
     0b11110001 => 0, 0b11110010 => 0, 0b11110011 => 0, 0b11110100 => 0, 0b11110101 => 0, 0b11110110 => 0, 0b11110111 => 0, 0b11111000 => 0,
     0b11111001 => 0, 0b11111010 => 0, 0b11111011 => 0, 0b11111100 => 0, 0b11111101 => 0, 0b11111110 => 0, 0b11111111 => 0, 0b00000000 => 0,
+  }
+}
+
+fn shift_right<R, T: Clone + Shr<i8, Output = R> + Shl<i8, Output = R> + std::fmt::Display>(v: T, s: i8) -> R {
+  if s < 0 {
+    v.shl(s.abs())
+  } else {
+    v.shr(s)
   }
 }
