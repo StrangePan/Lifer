@@ -59,7 +59,20 @@ pub fn new_value_for_block(board: &Board, block_index: usize) -> CellBlock {
     neighbors |= left_neighbors;
   }
 
-  let neighbor_corners: u8 = 0; // TODO gather neighbor corners
+  let mut neighbor_corners: u8 = 0;
+  if (!first_row && !first_column) {
+    neighbor_corners |= ((board[block_index - 1 - BOARD_WIDTH_BLOCKS] >> 63) as u8) & 0b00000001;
+  }
+  if (!first_row && !last_column) {
+    neighbor_corners |= ((board[block_index + 1 - BOARD_WIDTH_BLOCKS] >> 54) as u8) & 0b00000100;
+  }
+  if (!last_row && !last_column) {
+    neighbor_corners |= ((board[block_index + 1 + BOARD_WIDTH_BLOCKS] << 7) as u8) & 0b10000000;
+  }
+  if (!last_row && !first_column) {
+    neighbor_corners |= ((board[block_index - 1 + BOARD_WIDTH_BLOCKS] << 5) as u8) & 0b00100000;
+  }
+
   let block = board[block_index];
   new_value_for_outer_cell_block(block, neighbors, neighbor_corners) | new_value_for_inner_cell_block(block)
 }
