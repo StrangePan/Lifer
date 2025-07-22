@@ -2,7 +2,7 @@ mod conway;
 
 use std::mem::MaybeUninit;
 use sdl3::event::Event;
-use crate::conway::new_value_for_block;
+use crate::conway::{new_value_for_block, Board};
 
 #[macro_use]
 extern crate static_assertions;
@@ -23,15 +23,11 @@ fn main() {
   println!("done.");
 
   print!("Zeroing-out buffer 1...");
-  let buffer1: Box<conway::Board> = zero_out_buffer(buffer1);
+  let mut buffer1: Box<conway::Board> = zero_out_buffer(buffer1);
   println!("done.");
   print!("Zeroing-out buffer 2...");
-  let buffer2: Box<conway::Board> = zero_out_buffer(buffer2);
+  let mut buffer2: Box<conway::Board> = zero_out_buffer(buffer2);
   println!("done.");
-
-  // Force compiler not to optimize away the buffers
-  let _buffer1 = std::hint::black_box(buffer1);
-  let _buffer2 = std::hint::black_box(buffer2);
 
   let sdl = sdl3::init().unwrap();
   let video = sdl.video().unwrap();
@@ -43,6 +39,8 @@ fn main() {
           .build()
           .unwrap();
 
+  let mut step: u8 = 0;
+
   let mut event_pump = sdl.event_pump().unwrap();
   'main_loop: loop {
     for event in event_pump.poll_iter() {
@@ -52,8 +50,23 @@ fn main() {
       }
     }
 
-    std::hint::black_box(new_value_for_block(&_buffer1, 0));
-    // TODO update the board
+    let source: &Board;
+    let destination: &mut Board;
+    if step & 1 == 0 {
+      source = &buffer1;
+      destination = &mut buffer2;
+    } else {
+      source = &buffer2;
+      destination = &mut buffer1;
+    }
+    step ^= 1;
+
+    print!("Updating board...");
+    let start = std::time::Instant::now();
+    compute_next_board_state(source, destination);
+    let duration = start.elapsed();
+    println!("Done in {} milliseconds.", duration.as_secs_f32() * 10000.);
+
     // TODO draw the board
   }
 }
@@ -87,4 +100,20 @@ fn zero_out_buffer_serially<T: Clone + Send + Default, const N: usize>(buffer: B
   let mut buffer = unsafe { buffer.assume_init() };
   buffer.fill(T::default());
   buffer
+}
+
+fn compute_next_board_state(source: &Board, destination: &mut Board) {
+  let num_threads = num_threads();
+  let chunk_size = (source.len() + num_threads - 1) / num_threads;
+
+  std::thread::scope(|scope| {
+    let mut threads = Vec::<std::thread::ScopedJoinHandle<()>>::new();
+    for chunk in destination.chunks_mut(chunk_size) {
+      threads.push(scope.spawn(|| {
+        for (index, block) in chunk.iter_mut().enumerate() {
+          *block = new_value_for_block(source, index);
+        }
+      }));
+    }
+  });
 }
