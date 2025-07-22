@@ -18,13 +18,13 @@ pub const BOARD_HEIGHT_CELLS: u64 = BOARD_HEIGHT_BLOCKS * CELL_BLOCK_HEIGHT;
 pub type Board = [CellBlock; BOARD_TOTAL_BLOCKS as usize];
 
 pub fn new_value_for_block(board: &Board, block_index: usize) -> CellBlock {
-  // TODO gather neighbors
-  let neighbors: u32 = 0;
+  let neighbors: u32 = 0; // TODO gather neighbors
+  let neighbor_corners: u8 = 0; // TODO gather neighbor corners
   let block = board[block_index];
-  new_value_for_outer_cell_block(block, neighbors) | new_value_for_inner_cell_block(block)
+  new_value_for_outer_cell_block(block, neighbors, neighbor_corners) | new_value_for_inner_cell_block(block)
 }
 
-fn new_value_for_outer_cell_block(block: u64, neighbors: u32) -> u64 {
+fn new_value_for_outer_cell_block(block: u64, neighbors: u32, neighbor_corners: u8) -> u64 {
   const TOP_LEFT: u8 = 0;
   const TOP_RIGHT: u8 = 7;
   const BOTTOM_RIGHT: u8 = 63;
@@ -36,27 +36,36 @@ fn new_value_for_outer_cell_block(block: u64, neighbors: u32) -> u64 {
   const BOTTOM_CELLS: [u8; 6] = [57, 58, 59, 60, 61, 62];
 
   // neighbors are the cells surrounding the block's perimeter.
-  // neighbors[0] is top-left corner, neighbors[8] is top-right, neighbors[16] is bottom-right, and neighbors[24] is bottom-left
+  // bits 0-7 are top border left-to-right
+  // bits 8-15 are right border top-to-bottom
+  // bits 16-23 are bottom border left-to-right
+  // bits 24-31 are left border top-to-bottom
+
+  // neighbor_corners are formatted same as neighbor mask
+  // bit 0 is top-left corner
+  // bit 2 is top-right corner
+  // bit 5 is bottom-left corner
+  // bit 7 is bottom-right corner
 
   let mut new_block: u64 = 0;
 
   for cell in TOP_CELLS {
     let neighbor_mask: u8 =
-        ((neighbors >> cell) & 0b00000111) as u8
+        ((neighbors >> (cell - 1)) & 0b00000111) as u8
             | neighbor_left_of_cell(block, cell)
             | neighbor_right_of_cell(block, cell)
             | neighbors_below_cell(block, cell);
     new_block |= new_value_for_cell(block, cell, neighbor_mask);
   }
   for cell in RIGHT_CELLS {
+    let row = cell / 8;
     let neighbor_mask: u8 =
-        (neighbors_above_cell(block, cell) & 0b11000000)
-            // TODO neighbor top-right of cell
+        (neighbors_above_cell(block, cell) & 0b00000011)
+            | ((neighbors >> (row + 5)) & 0b00000100) as u8
             | neighbor_left_of_cell(block, cell)
-            // TODO neighbor right of cell
-            | (neighbors_below_cell(block, cell) & 0b00000110)
-        // TODO neighbor bottom-right of cell
-        ;
+            | ((neighbors >> (row + 4)) & 0b00010000) as u8
+            | (neighbors_below_cell(block, cell) & 0b01100000)
+            | ((neighbors >> (row + 2)) & 0b10000000) as u8;
     new_block |= new_value_for_cell(block, cell, neighbor_mask);
   }
   for cell in BOTTOM_CELLS {
@@ -64,18 +73,18 @@ fn new_value_for_outer_cell_block(block: u64, neighbors: u32) -> u64 {
         neighbors_above_cell(block, cell)
             | neighbor_left_of_cell(block, cell)
             | neighbor_right_of_cell(block, cell)
-        // TODO neighbors below cell
-        ;
+            | ((neighbors >> (cell - 46)) & 0b11100000) as u8;
     new_block |= new_value_for_cell(block, cell, neighbor_mask);
   }
   for cell in LEFT_CELLS {
+    let row = cell / 8;
     let neighbor_mask: u8 =
-        // TODO neighbor top-left of cell
-        (neighbors_above_cell(block, cell) & 0b01100000)
-            // TODO neighbor left of cell
+        ((neighbors >> (row + 23)) & 0b00000001) as u8
+            | (neighbors_above_cell(block, cell) & 0b00000110)
+            | ((neighbors >> (row + 21)) & 0b00001000) as u8
             | neighbor_right_of_cell(block, cell)
-            // TODO neighbor bottom-left of cell
-            | (neighbors_below_cell(block, cell) & 0b00000011);
+            | ((neighbors >> (row + 20)) & 0b00100000) as u8
+            | (neighbors_below_cell(block, cell) & 0b11000000);
     new_block |= new_value_for_cell(block, cell, neighbor_mask);
   }
 
