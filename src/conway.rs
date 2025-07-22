@@ -88,10 +88,49 @@ fn new_value_for_outer_cell_block(block: u64, neighbors: u32, neighbor_corners: 
     new_block |= new_value_for_cell(block, cell, neighbor_mask);
   }
 
-  // TODO top-left corner
-  // TODO top-right corner
-  // TODO bottom-right corner
-  // TODO bottom-left corner
+  // top-left corner
+  let cell: u8 = 0;
+  let neighbor_mask: u8 =
+      (neighbor_corners & 0b00000001)
+          | ((neighbors << 1) & 0b00000110) as u8
+          | ((neighbors >> 21) & 0b00001000) as u8
+          | neighbor_right_of_cell(block, cell)
+          | ((neighbors >> 20) & 0b00100000) as u8
+          | (neighbors_below_cell(block, cell) & 0b11000000);
+  new_block |= new_value_for_cell(block, cell, neighbor_mask);
+
+  // top-right corner
+  let cell: u8 = 7;
+  let neighbor_mask: u8 =
+      ((neighbors >> 6) & 0b00000011) as u8
+          | (neighbor_corners & 0b00000100)
+          | neighbor_left_of_cell(block, cell)
+          | ((neighbors >> 4) & 0b00010000) as u8
+          | (neighbors_below_cell(block, cell) & 0b01100000)
+          | ((neighbors >> 2) & 0b10000000) as u8;
+  new_block |= new_value_for_cell(block, cell, neighbor_mask);
+
+  // bottom-right corner
+  let cell: u8 = 63;
+  let neighbor_mask: u8 =
+      (neighbors_above_cell(block, cell) & 0b00000011)
+      | ((neighbors >> 12) & 0b00000100) as u8
+      | neighbor_left_of_cell(block, cell)
+      | ((neighbors >> 9) & 0b00010000) as u8
+      | (neighbors_below_cell(block, cell) & 0b01100000)
+      | (neighbor_corners & 0b10000000);
+  new_block |= new_value_for_cell(block, cell, neighbor_mask);
+
+  // bottom-left corner
+  let cell: u8 = 56;
+  let neighbor_mask: u8 =
+      ((neighbors >> 30) & 0b00000001) as u8
+          | (neighbors_above_cell(block, cell) & 0b00000110)
+          | ((neighbors >> 28) & 0b00001000) as u8
+          | neighbor_right_of_cell(block, cell)
+          | (neighbor_corners & 0b00100000)
+          | ((neighbors >> 10) & 0b11000000) as u8;
+  new_block |= new_value_for_cell(block, cell, neighbor_mask);
 
   new_block
 }
