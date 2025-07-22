@@ -9,8 +9,6 @@ extern crate static_assertions;
 const MAX_THREADS: usize = 64;
 
 fn main() {
-  const_assert!(size_of::<usize>() >= size_of::<u64>());
-
   // TODO: recursively divide board using quad tree or binary bit tree and use 1 to flag subtrees as needing update and 0 as not
 
   println!("Boards is {} x {}", conway::BOARD_WIDTH_CELLS, conway::BOARD_HEIGHT_CELLS);

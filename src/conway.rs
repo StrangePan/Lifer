@@ -5,6 +5,8 @@ pub const CELLS_PER_BLOCK: u64 = CellBlock::BITS as u64;
 pub const CELL_BLOCK_WIDTH: u64 = CELLS_PER_BLOCK.isqrt();
 pub const CELL_BLOCK_HEIGHT: u64 = CELLS_PER_BLOCK / CELL_BLOCK_WIDTH;
 
+const_assert!(size_of::<usize>() >= size_of::<u64>());
+
 pub const BOARD_TOTAL_BYTES: u64 = 4u64 * 1024u64 * 1024u64 * 1024u64; // target 4GB per buffer
 pub const BOARD_TOTAL_BLOCKS: u64 = BOARD_TOTAL_BYTES / size_of::<CellBlock>() as u64;
 #[allow(dead_code)]
