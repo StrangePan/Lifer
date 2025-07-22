@@ -8,19 +8,57 @@ pub const CELL_BLOCK_HEIGHT: u64 = CELLS_PER_BLOCK / CELL_BLOCK_WIDTH;
 const_assert!(size_of::<usize>() >= size_of::<u64>());
 
 pub const BOARD_TOTAL_BYTES: u64 = 4u64 * 1024u64 * 1024u64 * 1024u64; // target 4GB per buffer
-pub const BOARD_TOTAL_BLOCKS: u64 = BOARD_TOTAL_BYTES / size_of::<CellBlock>() as u64;
+pub const BOARD_TOTAL_BLOCKS: usize = (BOARD_TOTAL_BYTES / size_of::<CellBlock>() as u64) as usize;
 #[allow(dead_code)]
-pub const BOARD_TOTAL_CELLS: u64 = BOARD_TOTAL_BLOCKS * CELLS_PER_BLOCK;
+pub const BOARD_TOTAL_CELLS: u64 = BOARD_TOTAL_BLOCKS as u64 * CELLS_PER_BLOCK;
 
-pub const BOARD_WIDTH_BLOCKS: u64 = BOARD_TOTAL_BLOCKS.isqrt();
-pub const BOARD_HEIGHT_BLOCKS: u64 = BOARD_TOTAL_BLOCKS / BOARD_WIDTH_BLOCKS;
-pub const BOARD_WIDTH_CELLS: u64 = BOARD_WIDTH_BLOCKS * CELL_BLOCK_WIDTH;
-pub const BOARD_HEIGHT_CELLS: u64 = BOARD_HEIGHT_BLOCKS * CELL_BLOCK_HEIGHT;
+pub const BOARD_WIDTH_BLOCKS: usize = BOARD_TOTAL_BLOCKS.isqrt();
+pub const BOARD_HEIGHT_BLOCKS: usize = BOARD_TOTAL_BLOCKS / BOARD_WIDTH_BLOCKS;
+pub const BOARD_WIDTH_CELLS: u64 = BOARD_WIDTH_BLOCKS as u64 * CELL_BLOCK_WIDTH;
+pub const BOARD_HEIGHT_CELLS: u64 = BOARD_HEIGHT_BLOCKS as u64 * CELL_BLOCK_HEIGHT;
 
-pub type Board = [CellBlock; BOARD_TOTAL_BLOCKS as usize];
+pub type Board = [CellBlock; BOARD_TOTAL_BLOCKS];
 
 pub fn new_value_for_block(board: &Board, block_index: usize) -> CellBlock {
-  let neighbors: u32 = 0; // TODO gather neighbors
+  let first_row = block_index < BOARD_WIDTH_BLOCKS;
+  let last_column = block_index % BOARD_WIDTH_BLOCKS < BOARD_WIDTH_BLOCKS - 1;
+  let last_row = block_index < BOARD_TOTAL_BLOCKS - BOARD_WIDTH_BLOCKS;
+  let first_column = block_index % BOARD_WIDTH_BLOCKS > 0;
+
+  let mut neighbors: u32 = 0;
+  if (!first_row) {
+    neighbors |= ((board[block_index - BOARD_WIDTH_BLOCKS] & (0b11111111 << 56)) >> 40) as u32;
+  }
+  if (!last_column) {
+    let right_block = board[block_index + 1];
+    let right_neighbors: u32 =
+        ((right_block & 1) << 8) as u32
+            | ((right_block & (1 << 8)) << 1) as u32
+            | ((right_block & (1 << 16)) >> 6) as u32
+            | ((right_block & (1 << 24)) >> 13) as u32
+            | ((right_block & (1 << 32)) >> 20) as u32
+            | ((right_block & (1 << 40)) >> 27) as u32
+            | ((right_block & (1 << 48)) >> 34) as u32
+            | ((right_block & (1 << 56)) >> 41) as u32;
+    neighbors |= right_neighbors;
+  }
+  if (!last_row) {
+    neighbors |= ((board[block_index + BOARD_WIDTH_BLOCKS] & 0b11111111) << 16) as u32;
+  }
+  if (!first_column) {
+    let left_block = board[block_index - 1];
+    let left_neighbors: u32 =
+        ((left_block & (1 << 7)) << 17) as u32
+            | ((left_block & (1 << 15)) << 10) as u32
+            | ((left_block & (1 << 23)) << 3) as u32
+            | ((left_block & (1 << 31)) >> 4) as u32
+            | ((left_block & (1 << 39)) >> 11) as u32
+            | ((left_block & (1 << 47)) >> 18) as u32
+            | ((left_block & (1 << 55)) >> 25) as u32
+            | ((left_block & (1 << 63)) >> 32) as u32;
+    neighbors |= left_neighbors;
+  }
+
   let neighbor_corners: u8 = 0; // TODO gather neighbor corners
   let block = board[block_index];
   new_value_for_outer_cell_block(block, neighbors, neighbor_corners) | new_value_for_inner_cell_block(block)
