@@ -118,19 +118,19 @@ fn new_value_for_inner_cell(block: u64, cell: u8) -> u64 {
 }
 
 fn neighbors_above_cell(block: u64, cell: u8) -> u8 {
-  ((block >> (cell + 2)) & 0b11100000) as u8
+  ((block >> (cell - 9)) & 0b00000111) as u8
 }
 
 fn neighbor_left_of_cell(block: u64, cell: u8) -> u8 {
-  ((block >> (cell - 3)) & 0b00010000) as u8
-}
-
-fn neighbor_right_of_cell(block: u64, cell: u8) -> u8 {
   ((block >> (cell - 4)) & 0b00001000) as u8
 }
 
+fn neighbor_right_of_cell(block: u64, cell: u8) -> u8 {
+  ((block >> (cell - 3)) & 0b00010000) as u8
+}
+
 fn neighbors_below_cell(block: u64, cell: u8) -> u8 {
-  ((block >> (cell - 9)) & 0b00000111) as u8
+  ((block >> (cell + 2)) & 0b11100000) as u8
 }
 
 fn new_value_for_cell(block: u64, cell: u8, neighbor_mask: u8) -> u64 {
