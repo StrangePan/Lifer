@@ -2,6 +2,7 @@ mod conway;
 
 use std::mem::MaybeUninit;
 use sdl3::event::Event;
+use crate::conway::new_value_for_block;
 
 #[macro_use]
 extern crate static_assertions;
@@ -51,6 +52,7 @@ fn main() {
       }
     }
 
+    std::hint::black_box(new_value_for_block(&_buffer1, 0));
     // TODO update the board
     // TODO draw the board
   }

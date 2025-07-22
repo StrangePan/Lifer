@@ -26,10 +26,10 @@ pub fn new_value_for_block(board: &Board, block_index: usize) -> CellBlock {
   let first_column = block_index % BOARD_WIDTH_BLOCKS > 0;
 
   let mut neighbors: u32 = 0;
-  if (!first_row) {
+  if !first_row {
     neighbors |= ((board[block_index - BOARD_WIDTH_BLOCKS] & (0b11111111 << 56)) >> 40) as u32;
   }
-  if (!last_column) {
+  if !last_column {
     let right_block = board[block_index + 1];
     let right_neighbors: u32 =
         ((right_block & 1) << 8) as u32
@@ -42,10 +42,10 @@ pub fn new_value_for_block(board: &Board, block_index: usize) -> CellBlock {
             | ((right_block & (1 << 56)) >> 41) as u32;
     neighbors |= right_neighbors;
   }
-  if (!last_row) {
+  if !last_row {
     neighbors |= ((board[block_index + BOARD_WIDTH_BLOCKS] & 0b11111111) << 16) as u32;
   }
-  if (!first_column) {
+  if !first_column {
     let left_block = board[block_index - 1];
     let left_neighbors: u32 =
         ((left_block & (1 << 7)) << 17) as u32
@@ -60,16 +60,16 @@ pub fn new_value_for_block(board: &Board, block_index: usize) -> CellBlock {
   }
 
   let mut neighbor_corners: u8 = 0;
-  if (!first_row && !first_column) {
+  if !first_row && !first_column {
     neighbor_corners |= ((board[block_index - 1 - BOARD_WIDTH_BLOCKS] >> 63) as u8) & 0b00000001;
   }
-  if (!first_row && !last_column) {
+  if !first_row && !last_column {
     neighbor_corners |= ((board[block_index + 1 - BOARD_WIDTH_BLOCKS] >> 54) as u8) & 0b00000100;
   }
-  if (!last_row && !last_column) {
+  if !last_row && !last_column {
     neighbor_corners |= ((board[block_index + 1 + BOARD_WIDTH_BLOCKS] << 7) as u8) & 0b10000000;
   }
-  if (!last_row && !first_column) {
+  if !last_row && !first_column {
     neighbor_corners |= ((board[block_index - 1 + BOARD_WIDTH_BLOCKS] << 5) as u8) & 0b00100000;
   }
 
@@ -141,8 +141,7 @@ fn new_value_for_outer_cell_block(block: u64, neighbors: u32, neighbor_corners: 
     new_block |= new_value_for_cell(block, cell, neighbor_mask);
   }
 
-  // top-left corner
-  let cell: u8 = 0;
+  let cell: u8 = TOP_LEFT;
   let neighbor_mask: u8 =
       (neighbor_corners & 0b00000001)
           | ((neighbors << 1) & 0b00000110) as u8
@@ -152,8 +151,7 @@ fn new_value_for_outer_cell_block(block: u64, neighbors: u32, neighbor_corners: 
           | (neighbors_below_cell(block, cell) & 0b11000000);
   new_block |= new_value_for_cell(block, cell, neighbor_mask);
 
-  // top-right corner
-  let cell: u8 = 7;
+  let cell: u8 = TOP_RIGHT;
   let neighbor_mask: u8 =
       ((neighbors >> 6) & 0b00000011) as u8
           | (neighbor_corners & 0b00000100)
@@ -163,8 +161,7 @@ fn new_value_for_outer_cell_block(block: u64, neighbors: u32, neighbor_corners: 
           | ((neighbors >> 2) & 0b10000000) as u8;
   new_block |= new_value_for_cell(block, cell, neighbor_mask);
 
-  // bottom-right corner
-  let cell: u8 = 63;
+  let cell: u8 = BOTTOM_RIGHT;
   let neighbor_mask: u8 =
       (neighbors_above_cell(block, cell) & 0b00000011)
       | ((neighbors >> 12) & 0b00000100) as u8
@@ -174,8 +171,7 @@ fn new_value_for_outer_cell_block(block: u64, neighbors: u32, neighbor_corners: 
       | (neighbor_corners & 0b10000000);
   new_block |= new_value_for_cell(block, cell, neighbor_mask);
 
-  // bottom-left corner
-  let cell: u8 = 56;
+  let cell: u8 = BOTTOM_LEFT;
   let neighbor_mask: u8 =
       ((neighbors >> 30) & 0b00000001) as u8
           | (neighbors_above_cell(block, cell) & 0b00000110)
