@@ -14,7 +14,7 @@ fn main() {
   // TODO: recursively divide board using quad tree or binary bit tree and use 1 to flag subtrees as needing update and 0 as not
 
   println!("Boards is {} x {}", conway::BOARD_WIDTH_CELLS, conway::BOARD_HEIGHT_CELLS);
-  println!("Allocating 2 buffers of size {} ({} GB) each", conway::BOARD_TOTAL_BYTES, conway::BOARD_TOTAL_BYTES as f64 / 1024.0 / 1024.0 / 1024.0);
+  println!("Allocating 2 buffers of size {} ({} GB) {} x {} each", conway::BOARD_TOTAL_BYTES, conway::BOARD_TOTAL_BYTES as f64 / 1024.0 / 1024.0 / 1024.0, conway::BOARD_WIDTH_BLOCKS, conway::BOARD_HEIGHT_BLOCKS);
 
   print!("Allocating buffer 1...");
   let buffer1 = Box::<conway::Board>::new_uninit();
@@ -110,10 +110,10 @@ fn compute_next_board_state(source: &conway::Board, destination: &mut conway::Bo
 
   std::thread::scope(|scope| {
     let mut threads = Vec::<std::thread::ScopedJoinHandle<()>>::new();
-    for chunk in destination.chunks_mut(chunk_size) {
-      threads.push(scope.spawn(|| {
-        for (index, block) in chunk.iter_mut().enumerate() {
-          *block = conway::new_value_for_block(source, index);
+    for (chunk_index, chunk) in destination.chunks_mut(chunk_size).enumerate() {
+      threads.push(scope.spawn(move || {
+        for (block_index, block) in chunk.iter_mut().enumerate() {
+          *block = conway::new_value_for_block(source, chunk_index * chunk_size + block_index);
         }
       }));
     }

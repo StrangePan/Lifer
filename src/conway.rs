@@ -8,15 +8,15 @@ pub const CELL_BLOCK_HEIGHT: u64 = CELLS_PER_BLOCK / CELL_BLOCK_WIDTH;
 
 const_assert!(size_of::<usize>() >= size_of::<u64>());
 
-pub const BOARD_TOTAL_BYTES: u64 = 4u64 * 1024u64 * 1024u64 * 1024u64; // target 4GB per buffer
-pub const BOARD_TOTAL_BLOCKS: usize = (BOARD_TOTAL_BYTES / size_of::<CellBlock>() as u64) as usize;
-#[allow(dead_code)]
-pub const BOARD_TOTAL_CELLS: u64 = BOARD_TOTAL_BLOCKS as u64 * CELLS_PER_BLOCK;
 
-pub const BOARD_WIDTH_BLOCKS: usize = BOARD_TOTAL_BLOCKS.isqrt();
-pub const BOARD_HEIGHT_BLOCKS: usize = BOARD_TOTAL_BLOCKS / BOARD_WIDTH_BLOCKS;
+pub const BOARD_WIDTH_BLOCKS: usize = 23170;
+pub const BOARD_HEIGHT_BLOCKS: usize = 23170;
+pub const BOARD_TOTAL_BLOCKS: usize = BOARD_HEIGHT_BLOCKS * BOARD_WIDTH_BLOCKS;
+
 pub const BOARD_WIDTH_CELLS: u64 = BOARD_WIDTH_BLOCKS as u64 * CELL_BLOCK_WIDTH;
 pub const BOARD_HEIGHT_CELLS: u64 = BOARD_HEIGHT_BLOCKS as u64 * CELL_BLOCK_HEIGHT;
+pub const BOARD_TOTAL_CELLS: u64 = BOARD_TOTAL_BLOCKS as u64 * CELLS_PER_BLOCK;
+pub const BOARD_TOTAL_BYTES: u64 = BOARD_TOTAL_CELLS * size_of::<CellBlock>() as u64; // roughly 4 GB per buffer
 
 pub type Board = [CellBlock; BOARD_TOTAL_BLOCKS];
 
